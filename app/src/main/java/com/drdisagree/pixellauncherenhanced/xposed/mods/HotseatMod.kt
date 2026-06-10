@@ -81,7 +81,7 @@ class HotseatMod(context: Context) : ModPack(context) {
                         .getField("value")
                 val padding = grid.getFieldSilently("workspacePadding") as? Rect
                     ?: grid
-                        .getFieldSilently("mWorkspaceProfile")
+                        .getFieldSilently("workspaceProfile")
                         ?.getFieldSilently("workspacePadding") as? Rect
                 val workspace = param.thisObject as View
 

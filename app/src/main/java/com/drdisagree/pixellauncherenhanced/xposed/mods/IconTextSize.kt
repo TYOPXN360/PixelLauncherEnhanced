@@ -84,7 +84,7 @@ class IconTextSize(context: Context) : ModPack(context) {
                 setField("folderCellWidthPx", folderCellWidthPx)
                 setField("folderCellHeightPx", folderCellHeightPx)
             } else {
-                val mWorkspaceProfile = getFieldSilently("mWorkspaceProfile")
+                val mWorkspaceProfile = getFieldSilently("workspaceProfile")
                 if (mWorkspaceProfile == null) {
                     // New launcher version - field not available, skip this section
                     return
@@ -94,25 +94,25 @@ class IconTextSize(context: Context) : ModPack(context) {
                 var mWorkspaceProfileIconTextSizePx =
                     mWorkspaceProfile.getField("iconTextSizePx") as Int
 
-                val mFolderProfile = getField("mFolderProfile")
+                val mFolderProfile = getFieldSilently("folderProfile")
                 var mFolderProfileFolderIconSizePx =
-                    mFolderProfile.getFieldSilently("folderIconSizePx") as? Int
+                    mFolderProfile?.getFieldSilently("folderIconSizePx") as? Int
                 var mFolderProfileLabelTextSizePx =
-                    mFolderProfile.getField("labelTextSizePx") as Int
+                    mFolderProfile?.getField("labelTextSizePx") as Int
                 var mFolderProfileFolderChildIconSizePx =
-                    mFolderProfile.getField("childIconSizePx") as Int
+                    mFolderProfile?.getField("childIconSizePx") as Int
                 var mFolderProfileFolderChildTextSizePx =
-                    mFolderProfile.getField("childTextSizePx") as Int
+                    mFolderProfile?.getField("childTextSizePx") as Int
                 var mFolderProfileFolderCellWidthPx =
-                    mFolderProfile.getField("cellWidthPx") as Int
+                    mFolderProfile?.getField("cellWidthPx") as Int
                 var mFolderProfileFolderCellHeightPx =
-                    mFolderProfile.getField("cellHeightPx") as Int
+                    mFolderProfile?.getField("cellHeightPx") as Int
 
-                val mAllAppsProfile = getField("mAllAppsProfile")
+                val mAllAppsProfile = getFieldSilently("allAppsProfile")
                 var mAllAppsProfileAllAppsIconSizePx =
-                    mAllAppsProfile.getField("iconSizePx") as Int
+                    mAllAppsProfile?.getField("iconSizePx") as Int
                 var mAllAppsProfileAllAppsIconTextSizePx =
-                    mAllAppsProfile.getField("iconTextSizePx") as Float
+                    mAllAppsProfile?.getField("iconTextSizePx") as Float
 
                 var folderIconSizePx = getFieldSilently("folderIconSizePx") as? Int
                 var folderLabelTextSizePx = getFieldSilently("folderLabelTextSizePx") as? Int

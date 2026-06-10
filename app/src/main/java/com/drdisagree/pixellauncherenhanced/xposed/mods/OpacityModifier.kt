@@ -178,8 +178,9 @@ class OpacityModifier(context: Context) : ModPack(context) {
                 val launcher = param.args[0]
                 val deviceProfile = launcher.callMethod("getDeviceProfile")
                 val isTaskbarPresentInApps =
-                    deviceProfile.callMethodSilently("isTaskbarPresentInApps") as? Boolean
-                        ?: deviceProfile.getField("isTaskbarPresentInApps") as Boolean
+                    deviceProfile.getFieldSilently("deviceProperties")
+                        ?.getFieldSilently("taskbarConfiguration")
+                        ?.getFieldSilently("isTaskbarPresent") as? Boolean ?: false
                 val currentResult = param.result as Int
 
                 if (currentResult != Color.TRANSPARENT && !isTaskbarPresentInApps) {
