@@ -163,6 +163,33 @@ class ThemedIcons(context: Context) : ModPack(context) {
                 }
         }
 
+        // Hook BaseIconFactory constructor to inject MonoIconThemeController
+        // when themeController is null but our setting is enabled
+        val baseIconFactoryClass = findClass(
+            "com.android.launcher3.icons.BaseIconFactory",
+            suppressError = true
+        )
+        val monoIconThemeControllerClass = findClass(
+            "com.android.launcher3.icons.mono.MonoIconThemeController",
+            suppressError = true
+        )
+
+        if (baseIconFactoryClass != null && monoIconThemeControllerClass != null) {
+            baseIconFactoryClass
+                .hookConstructor()
+                .suppressError()
+                .runAfter { param ->
+                    if (!appDrawerThemedIcons) return@runAfter
+
+                    val themeController = param.thisObject.getFieldSilently("themeController")
+                    if (themeController == null) {
+                        // Inject MonoIconThemeController when it's null
+                        val newController = monoIconThemeControllerClass.getConstructor().newInstance()
+                        param.thisObject.setField("themeController", newController)
+                    }
+                }
+        }
+
         bubbleTextViewClass
             .hookMethod("applyIconAndLabel")
             .parameters("com.android.launcher3.model.data.ItemInfoWithIcon")
