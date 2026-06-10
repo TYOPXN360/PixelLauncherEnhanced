@@ -20,6 +20,7 @@ import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.getAnyField
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.getExtraFieldSilently
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.getField
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.getFieldSilently
+import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.getStaticFieldSilently
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.getStaticField
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.hasMethod
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.hookConstructor
