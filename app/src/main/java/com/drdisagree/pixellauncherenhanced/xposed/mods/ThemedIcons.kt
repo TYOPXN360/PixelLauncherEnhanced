@@ -132,8 +132,10 @@ class ThemedIcons(context: Context) : ModPack(context) {
             suppressError = true
         )
 
+        // Hook shouldUseTheme if it exists (old launcher versions)
         bubbleTextViewClass
             .hookMethod("shouldUseTheme")
+            .suppressError()
             .runAfter { param ->
                 if (param.result == false && appDrawerThemedIcons) {
                     val context = param.thisObject.callMethod("getContext") as Context
