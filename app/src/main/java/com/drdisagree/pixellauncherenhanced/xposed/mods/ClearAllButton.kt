@@ -121,7 +121,7 @@ class ClearAllButton(context: Context) : ModPack(context) {
                     !isLandscape
                 } else {
                     // Only show search in tablet overview if taskbar is not visible.
-                    !(deviceProfile.getField("isTaskbarPresent") as Boolean) ||
+                    !(deviceProfile.getFieldSilently("isTaskbarPresent") as? Boolean ?: false) ||
                             param.thisObject.callMethod("isTaskbarStashed", launcher) as Boolean
                 }
 
