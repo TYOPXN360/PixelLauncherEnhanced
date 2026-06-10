@@ -265,13 +265,19 @@ class ThemedIcons(context: Context) : ModPack(context) {
                                     suppressError = true
                                 )
                                 val launcherIcons = try {
-                                    // Try static obtain(Context) first
-                                    launcherIconsClass?.callStaticMethod("obtain", context)
-                                } catch (_: Throwable) {
-                                    // Try Companion.obtain(Context)
-                                    launcherIconsClass?.getStaticFieldSilently("Companion")
-                                        ?.callMethod("obtain", context)
-                                }
+                                    // Try LauncherIcons$Companion.obtain(context)
+                                    val companionClass = Class.forName(
+                                        "com.android.launcher3.icons.LauncherIcons\$Companion",
+                                        false,
+                                        context.classLoader
+                                    )
+                                    val obtainMethod = companionClass.getDeclaredMethod("obtain", android.content.Context::class.java)
+                                    obtainMethod.isAccessible = true
+                                    // Get Companion instance
+                                    val companionInstance = launcherIconsClass?.getStaticFieldSilently("Companion")
+                                    obtainMethod.invoke(companionInstance, context)
+                                } catch (_: Throwable) { null }
+
                                 if (launcherIcons == null) throw IllegalStateException("Cannot obtain LauncherIcons")
 
                                 val newThemedBitmap = try {
