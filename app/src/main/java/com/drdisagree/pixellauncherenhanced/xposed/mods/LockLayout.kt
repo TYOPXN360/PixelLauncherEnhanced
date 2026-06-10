@@ -162,7 +162,7 @@ class LockLayout(context: Context) : ModPack(context) {
                     }
                 }
         } else {
-            log("Suitable method not found in OptionsPopupView class.")
+            // Method not found in new launcher version, suppress log
         }
     }
 }
