@@ -227,17 +227,13 @@ class ThemedIcons(context: Context) : ModPack(context) {
 
         // ROOT FIX: Hook BitmapInfo.newIcon() to force themed rendering
         // When themedBitmap is NOT_SUPPORTED but our setting is enabled,
-        // create themedBitmap on-the-fly using MonoIconThemeController
+        // create MonoThemedBitmap using our MonochromeIconFactory
         val bitmapInfoClass = findClass(
             "com.android.launcher3.icons.BitmapInfo",
             suppressError = true
         )
-        val monoThemeControllerClass = findClass(
-            "com.android.launcher3.icons.mono.MonoIconThemeController",
-            suppressError = true
-        )
 
-        if (bitmapInfoClass != null && monoThemeControllerClass != null) {
+        if (bitmapInfoClass != null) {
             bitmapInfoClass.hookMethod("newIcon")
                 .suppressError()
                 .runBefore { param ->
@@ -251,56 +247,42 @@ class ThemedIcons(context: Context) : ModPack(context) {
                         val icon = param.thisObject.getFieldSilently("icon") as? android.graphics.Bitmap
                         if (icon != null) {
                             try {
-                                val controller = monoThemeControllerClass.getConstructor().newInstance()
-                                val softwareIcon = icon.copy(android.graphics.Bitmap.Config.ARGB_8888, false)
-                                val adaptiveIcon = android.graphics.drawable.AdaptiveIconDrawable(
-                                    android.graphics.drawable.ColorDrawable(android.graphics.Color.WHITE),
-                                    android.graphics.drawable.BitmapDrawable(mContext.resources, softwareIcon)
-                                )
-                                val context = param.args[0] as android.content.Context
+                                // Use our MonochromeIconFactory to create monochrome drawable
+                                val monoDrawable = MonochromeIconFactory(icon.width, false)
+                                    .wrap(mContext, android.graphics.drawable.BitmapDrawable(mContext.resources, icon))
 
-                                // Get a BaseIconFactory from the LauncherIcons pool
-                                val launcherIconsClass = findClass(
-                                    "com.android.launcher3.icons.LauncherIcons",
-                                    suppressError = true
-                                )
-                                val launcherIcons = try {
-                                    // Try LauncherIcons$Companion.obtain(context)
-                                    val companionClass = Class.forName(
-                                        "com.android.launcher3.icons.LauncherIcons\$Companion",
-                                        false,
-                                        context.classLoader
+                                // Get the monochrome bitmap from the drawable
+                                val monoBitmap = (monoDrawable as? android.graphics.drawable.BitmapDrawable)?.bitmap
+                                    ?.copy(android.graphics.Bitmap.Config.ALPHA_8, false)
+
+                                if (monoBitmap != null) {
+                                    // Get color provider from ThemedIconDelegate.Companion
+                                    val themedDelegateCompanion = findClass(
+                                        "com.android.launcher3.icons.mono.ThemedIconDelegate\$Companion",
+                                        suppressError = true
                                     )
-                                    val obtainMethod = companionClass.getDeclaredMethod("obtain", android.content.Context::class.java)
-                                    obtainMethod.isAccessible = true
-                                    // Get Companion instance
-                                    val companionInstance = launcherIconsClass?.getStaticFieldSilently("Companion")
-                                    obtainMethod.invoke(companionInstance, context)
-                                } catch (_: Throwable) { null }
+                                    val colorProvider = themedDelegateCompanion?.getStaticFieldSilently("INSTANCE")
 
-                                if (launcherIcons == null) throw IllegalStateException("Cannot obtain LauncherIcons")
-
-                                val newThemedBitmap = try {
-                                    controller.callMethod(
-                                        "createThemedBitmap",
-                                        adaptiveIcon,
-                                        param.thisObject,
-                                        launcherIcons,
-                                        null
+                                    // Create MonoThemedBitmap
+                                    val monoThemedBitmapClass = findClass(
+                                        "com.android.launcher3.icons.mono.MonoThemedBitmap",
+                                        suppressError = true
                                     )
-                                } finally {
-                                    // Recycle the LauncherIcons back to pool
-                                    launcherIcons.callMethodSilently("recycle")
-                                }
+                                    val cInterface = findClass("ta.c", suppressError = true)
 
-                                if (newThemedBitmap != null) {
-                                    de.robv.android.xposed.XposedHelpers.setObjectField(
-                                        param.thisObject, "themedBitmap", newThemedBitmap
-                                    )
-                                    log("[ThemedIcons] Created on-the-fly themedBitmap for icon")
+                                    if (monoThemedBitmapClass != null && cInterface != null && colorProvider != null) {
+                                        val newThemedBitmap = monoThemedBitmapClass
+                                            .getConstructor(android.graphics.Bitmap::class.java, cInterface, Double::class.javaPrimitiveType)
+                                            .newInstance(monoBitmap, colorProvider, null)
+
+                                        de.robv.android.xposed.XposedHelpers.setObjectField(
+                                            param.thisObject, "themedBitmap", newThemedBitmap
+                                        )
+                                        log("[ThemedIcons] Created MonoThemedBitmap from monochrome icon")
+                                    }
                                 }
                             } catch (e: Throwable) {
-                                log("[ThemedIcons] Failed to create themedBitmap: ${e.message}")
+                                log("[ThemedIcons] Failed: ${e.message}")
                             }
                         }
                     }
