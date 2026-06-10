@@ -188,6 +188,34 @@ class ThemedIcons(context: Context) : ModPack(context) {
                         param.thisObject.setField("themeController", newController)
                     }
                 }
+
+            // Also hook LauncherIcons.IconPool.obtain() to fix cached instances
+            // with null themeController when retrieving from the pool
+            val launcherIconsClass = findClass(
+                "com.android.launcher3.icons.LauncherIcons",
+                suppressError = true
+            )
+            launcherIconsClass?.let { clazz ->
+                // Hook the obtain method in the inner IconPool class
+                val iconPoolClass = findClass(
+                    "com.android.launcher3.icons.LauncherIcons\$IconPool",
+                    suppressError = true
+                )
+                iconPoolClass?.hookMethod("obtain")
+                    ?.suppressError()
+                    ?.runAfter { param ->
+                        if (!appDrawerThemedIcons) return@runAfter
+
+                        val launcherIcons = param.result
+                        if (launcherIcons != null) {
+                            val themeController = launcherIcons.getFieldSilently("themeController")
+                            if (themeController == null) {
+                                val newController = monoIconThemeControllerClass.getConstructor().newInstance()
+                                launcherIcons.setField("themeController", newController)
+                            }
+                        }
+                    }
+            }
         }
 
         bubbleTextViewClass
