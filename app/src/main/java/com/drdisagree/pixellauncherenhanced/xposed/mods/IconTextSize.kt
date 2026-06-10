@@ -84,7 +84,11 @@ class IconTextSize(context: Context) : ModPack(context) {
                 setField("folderCellWidthPx", folderCellWidthPx)
                 setField("folderCellHeightPx", folderCellHeightPx)
             } else {
-                val mWorkspaceProfile = getField("mWorkspaceProfile")
+                val mWorkspaceProfile = getFieldSilently("mWorkspaceProfile")
+                if (mWorkspaceProfile == null) {
+                    // New launcher version - field not available, skip this section
+                    return@runAfter
+                }
                 var mWorkspaceProfileIconSizePx =
                     mWorkspaceProfile.getField("iconSizePx") as Int
                 var mWorkspaceProfileIconTextSizePx =

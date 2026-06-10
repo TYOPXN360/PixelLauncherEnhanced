@@ -175,7 +175,7 @@ class LauncherUtils(context: Context) : ModPack(context) {
                     }
                 }
 
-                mModel.callMethod("forceReload")
+                mModel.callMethodSilently("forceReload")
             }
         }
     }
