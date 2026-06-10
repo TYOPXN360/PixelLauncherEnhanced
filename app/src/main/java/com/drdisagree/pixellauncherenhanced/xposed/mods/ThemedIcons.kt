@@ -225,30 +225,64 @@ class ThemedIcons(context: Context) : ModPack(context) {
             }
         }
 
-        // Hook BitmapInfo.newIcon() to ensure themed icons work even when
-        // cached BitmapInfo has themedBitmap=NOT_SUPPORTED
-        // Clear themedBitmap so BaseIconFactory will regenerate it with themeController
-        val bitmapInfoClass = findClass(
-            "com.android.launcher3.icons.BitmapInfo",
+        // ROOT FIX: Hook BaseIconCache.addOrUpdateCacheDbEntry
+        // When themed icons are enabled, the BitmapInfo has a themed delegateFactory,
+        // which causes mono_icon to be saved as null in the DB.
+        // Fix: temporarily swap delegateFactory to SimpleDelegateFactory before saving,
+        // so mono_icon is properly saved. Restore after saving.
+        val baseIconCacheClass = findClass(
+            "com.android.launcher3.icons.cache.BaseIconCache",
             suppressError = true
         )
-        bitmapInfoClass?.hookMethod("newIcon")
-            ?.suppressError()
-            ?.runBefore { param ->
-                if (!appDrawerThemedIcons) return@runBefore
 
-                val flags = param.args[1] as? Int ?: return@runBefore
-                if ((flags and FLAG_THEMED) != 0) {
-                    val themedBitmap = param.thisObject.getFieldSilently("themedBitmap")
-                    if (themedBitmap != null && themedBitmap.javaClass.simpleName == "NOT_SUPPORTED") {
-                        // Use Xposed to set the field even if it's final
-                        de.robv.android.xposed.XposedHelpers.setObjectField(
-                            param.thisObject, "themedBitmap", null
-                        )
-                        log("[ThemedIcons] Cleared NOT_SUPPORTED themedBitmap to force recreation")
+        baseIconCacheClass?.let { cacheClass ->
+            // Get the SimpleDelegateFactory singleton
+            val simpleDelegateFactoryClass = findClass(
+                "com.android.launcher3.icons.FastBitmapDrawableDelegate\$SimpleDelegateFactory",
+                suppressError = true
+            )
+
+            if (simpleDelegateFactoryClass != null) {
+                val simpleFactoryInstance = simpleDelegateFactoryClass.getStaticFieldSilently("INSTANCE")
+
+                cacheClass.hookMethod("addOrUpdateCacheDbEntry")
+                    .suppressError()
+                    .runBefore { param ->
+                        if (!appDrawerThemedIcons) return@runBefore
+                        if (simpleFactoryInstance == null) return@runBefore
+
+                        val bitmapInfo = param.args[0] as? Any ?: return@runBefore
+                        val originalFactory = bitmapInfo.getFieldSilently("delegateFactory")
+                        val themedBitmap = bitmapInfo.getFieldSilently("themedBitmap")
+
+                        // If themedBitmap exists but delegateFactory is themed (not SimpleDelegate),
+                        // swap to SimpleDelegateFactory so mono_icon is saved properly
+                        if (themedBitmap != null && originalFactory != null && simpleFactoryInstance != originalFactory) {
+                            bitmapInfo.setField("delegateFactory", simpleFactoryInstance)
+                            // Store original for restoration
+                            de.robv.android.xposed.XposedHelpers.setAdditionalInstanceField(
+                                bitmapInfo, "_originalDelegateFactory", originalFactory
+                            )
+                            log("[ThemedIcons] Swapped delegateFactory to Simple for DB save")
+                        }
                     }
-                }
+                    .runAfter { param ->
+                        if (!appDrawerThemedIcons) return@runAfter
+
+                        val bitmapInfo = param.args[0] as? Any ?: return@runAfter
+                        // Restore original delegateFactory
+                        val originalFactory = de.robv.android.xposed.XposedHelpers.getAdditionalInstanceField(
+                            bitmapInfo, "_originalDelegateFactory"
+                        )
+                        if (originalFactory != null) {
+                            bitmapInfo.setField("delegateFactory", originalFactory)
+                            de.robv.android.xposed.XposedHelpers.removeAdditionalInstanceField(
+                                bitmapInfo, "_originalDelegateFactory"
+                            )
+                        }
+                    }
             }
+        }
 
         bubbleTextViewClass
             .hookMethod("applyIconAndLabel")
