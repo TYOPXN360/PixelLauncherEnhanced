@@ -158,6 +158,7 @@ class ThemedIcons(context: Context) : ModPack(context) {
                 .suppressError()
                 .runAfter { param ->
                     if (appDrawerThemedIcons && param.result == false) {
+                        log("[ThemedIcons] isIconThemeEnabled was false, setting to true")
                         param.result = true
                     }
                 }
@@ -182,10 +183,13 @@ class ThemedIcons(context: Context) : ModPack(context) {
                     if (!appDrawerThemedIcons) return@runAfter
 
                     val themeController = param.thisObject.getFieldSilently("themeController")
+                    val className = param.thisObject.javaClass.simpleName
+                    log("[ThemedIcons] BaseIconFactory constructor: className=$className, themeController=${themeController != null}")
                     if (themeController == null) {
                         // Inject MonoIconThemeController when it's null
                         val newController = monoIconThemeControllerClass.getConstructor().newInstance()
                         param.thisObject.setField("themeController", newController)
+                        log("[ThemedIcons] Injected MonoIconThemeController into $className")
                     }
                 }
 
@@ -209,10 +213,13 @@ class ThemedIcons(context: Context) : ModPack(context) {
                         val launcherIcons = param.result
                         if (launcherIcons != null) {
                             val themeController = launcherIcons.getFieldSilently("themeController")
+                            log("[ThemedIcons] IconPool.obtain: themeController=${themeController != null}")
                             if (themeController == null) {
                                 val newController = monoIconThemeControllerClass.getConstructor().newInstance()
                                 launcherIcons.setField("themeController", newController)
+                                log("[ThemedIcons] Injected MonoIconThemeController into cached LauncherIcons")
                             }
+                        }
                         }
                     }
             }
@@ -235,6 +242,9 @@ class ThemedIcons(context: Context) : ModPack(context) {
                     themeManagerClass,
                     themePreferenceClass
                 )
+
+                val appName = info.getFieldSilently("title") ?: "unknown"
+                log("[ThemedIcons] applyIconAndLabel: appName=$appName, shouldUseTheme=$shouldUseTheme, mDisplay=$mDisplay")
 
                 var flags = if (shouldUseTheme) FLAG_THEMED else 0
 
