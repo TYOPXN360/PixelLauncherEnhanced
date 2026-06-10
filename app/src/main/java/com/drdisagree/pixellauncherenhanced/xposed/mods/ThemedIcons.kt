@@ -313,19 +313,30 @@ class ThemedIcons(context: Context) : ModPack(context) {
         DISPLAY_PREDICTION_ROW,
         DISPLAY_SEARCH_RESULT_APP_ROW
     ) && try {
-        themesClass.callStaticMethod("isThemedIconEnabled", context)
+        // New launcher version: ThemeManager.isIconThemeEnabled()
+        themeManagerClass
+            ?.getStaticFieldSilently("INSTANCE")
+            ?.callMethodSilently("get", context)
+            ?.callMethodSilently("isIconThemeEnabled") as? Boolean == true
     } catch (_: Throwable) {
         try {
-            themeManagerClass
-                .getStaticField("INSTANCE")
-                .callMethod("get", context)
-                .callMethod("isMonoThemeEnabled")
+            // Old launcher version: Themes.isThemedIconEnabled(context)
+            themesClass.callStaticMethod("isThemedIconEnabled", context)
         } catch (_: Throwable) {
-            themePreferenceClass.getStaticField("MONO_THEME_VALUE") == themeManagerClass
-                .getStaticField("INSTANCE")
-                .callMethod("get", context)
-                .getField("themePreference")
-                .callMethod("getValue")
+            try {
+                // Older launcher version: ThemeManager.isMonoThemeEnabled()
+                themeManagerClass
+                    .getStaticField("INSTANCE")
+                    .callMethod("get", context)
+                    .callMethod("isMonoThemeEnabled")
+            } catch (_: Throwable) {
+                // Oldest launcher version: ThemePreference check
+                themePreferenceClass?.getStaticFieldSilently("MONO_THEME_VALUE") == themeManagerClass
+                    ?.getStaticFieldSilently("INSTANCE")
+                    ?.callMethodSilently("get", context)
+                    ?.getFieldSilently("themePreference")
+                    ?.callMethodSilently("getValue")
+            }
         }
     } as Boolean
 
