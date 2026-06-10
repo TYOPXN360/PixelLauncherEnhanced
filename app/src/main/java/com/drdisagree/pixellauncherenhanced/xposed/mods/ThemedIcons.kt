@@ -248,25 +248,42 @@ class ThemedIcons(context: Context) : ModPack(context) {
 
                     val themedBitmap = param.thisObject.getFieldSilently("themedBitmap")
                     if (themedBitmap == null || themedBitmap.javaClass.simpleName == "NOT_SUPPORTED") {
-                        // themedBitmap is missing - create one on-the-fly
                         val icon = param.thisObject.getFieldSilently("icon") as? android.graphics.Bitmap
                         if (icon != null) {
                             try {
                                 val controller = monoThemeControllerClass.getConstructor().newInstance()
-                                // Convert hardware bitmap to software bitmap
                                 val softwareIcon = icon.copy(android.graphics.Bitmap.Config.ARGB_8888, false)
                                 val adaptiveIcon = android.graphics.drawable.AdaptiveIconDrawable(
                                     android.graphics.drawable.ColorDrawable(android.graphics.Color.WHITE),
                                     android.graphics.drawable.BitmapDrawable(mContext.resources, softwareIcon)
                                 )
                                 val context = param.args[0] as android.content.Context
-                                val newThemedBitmap = controller.callMethod(
-                                    "createThemedBitmap",
-                                    adaptiveIcon,
-                                    param.thisObject,
-                                    null,
-                                    null
+
+                                // Get a BaseIconFactory from the LauncherIcons pool
+                                val launcherIconsClass = findClass(
+                                    "com.android.launcher3.icons.LauncherIcons",
+                                    suppressError = true
                                 )
+                                val obtainMethod = launcherIconsClass?.declaredMethods?.find {
+                                    it.name == "obtain" && it.parameterTypes.isEmpty()
+                                }
+                                val launcherIcons = launcherIconsClass?.getDeclaredMethod("obtain", android.content.Context::class.java)
+                                    ?.invoke(null, context)
+                                    ?: throw IllegalStateException("Cannot obtain LauncherIcons")
+
+                                val newThemedBitmap = try {
+                                    controller.callMethod(
+                                        "createThemedBitmap",
+                                        adaptiveIcon,
+                                        param.thisObject,
+                                        launcherIcons,
+                                        null
+                                    )
+                                } finally {
+                                    // Recycle the LauncherIcons back to pool
+                                    launcherIcons.callMethodSilently("recycle")
+                                }
+
                                 if (newThemedBitmap != null) {
                                     de.robv.android.xposed.XposedHelpers.setObjectField(
                                         param.thisObject, "themedBitmap", newThemedBitmap
