@@ -220,7 +220,6 @@ class ThemedIcons(context: Context) : ModPack(context) {
                                 log("[ThemedIcons] Injected MonoIconThemeController into cached LauncherIcons")
                             }
                         }
-                        }
                     }
             }
         }
