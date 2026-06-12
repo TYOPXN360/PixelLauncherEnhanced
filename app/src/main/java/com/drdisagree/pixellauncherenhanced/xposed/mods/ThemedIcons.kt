@@ -137,7 +137,7 @@ class ThemedIcons(context: Context) : ModPack(context) {
             .suppressError()
             .runAfter { param ->
                 if (param.result == false && appDrawerThemedIcons) {
-                val context = param.thisObject.callMethod("getContext") as? Context ?: return@runAfter
+                val context = (param.thisObject as? android.view.View)?.context ?: return@runAfter
                     val mDisplay = param.thisObject.getField("mDisplay") as Int
 
                     param.result = mDisplay.shouldUseTheme(
@@ -305,7 +305,7 @@ class ThemedIcons(context: Context) : ModPack(context) {
                 if (!appDrawerThemedIcons) return@runBefore
 
                 val info = param.args[0]
-                val context = param.thisObject.callMethod("getContext") as? Context ?: return@runBefore
+                val context = (param.thisObject as? android.view.View)?.context ?: return@runBefore
                 val mDisplay = param.thisObject.getField("mDisplay") as? Int ?: return@runBefore
                 val mHideBadge = param.thisObject.getField("mHideBadge") as? Boolean ?: false
                 val mSkipUserBadge = param.thisObject.getField("mSkipUserBadge") as? Boolean ?: false

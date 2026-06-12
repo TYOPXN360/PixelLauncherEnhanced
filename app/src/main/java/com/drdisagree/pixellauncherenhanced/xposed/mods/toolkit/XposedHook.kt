@@ -694,22 +694,31 @@ fun Any?.setExtraField(fieldName: String, value: Any?) {
     extraFields.getOrPut(this) { mutableMapOf() }[fieldName] = value
 }
 
+private val methodCache = java.util.concurrent.ConcurrentHashMap<String, Method?>()
+private val fieldCache = java.util.concurrent.ConcurrentHashMap<String, java.lang.reflect.Field?>()
+
 private fun findMethod(clazz: Class<*>, name: String, paramCount: Int): Method {
-    var c: Class<*>? = clazz
-    while (c != null) {
-        c.declaredMethods.firstOrNull { it.name == name && it.parameterCount == paramCount }
-            ?.let { return it }
-        c = c.superclass
-    }
-    throw NoSuchMethodError("Method not found: $name with $paramCount params in ${clazz.name}")
+    val key = "${clazz.name}#$name($paramCount)"
+    return methodCache.getOrPut(key) {
+        var c: Class<*>? = clazz
+        while (c != null) {
+            c.declaredMethods.firstOrNull { it.name == name && it.parameterCount == paramCount }
+                ?.let { return@getOrPut it }
+            c = c.superclass
+        }
+        null
+    } ?: throw NoSuchMethodError("Method not found: $name with $paramCount params in ${clazz.name}")
 }
 
 private fun findField(clazz: Class<*>, name: String): java.lang.reflect.Field {
-    var c: Class<*>? = clazz
-    while (c != null) {
-        c.declaredFields.firstOrNull { it.name == name }
-            ?.let { return it }
-        c = c.superclass
-    }
-    throw NoSuchFieldError("Field not found: $name in ${clazz.name}")
+    val key = "${clazz.name}#$name"
+    return fieldCache.getOrPut(key) {
+        var c: Class<*>? = clazz
+        while (c != null) {
+            c.declaredFields.firstOrNull { it.name == name }
+                ?.let { return@getOrPut it }
+            c = c.superclass
+        }
+        null
+    } ?: throw NoSuchFieldError("Field not found: $name in ${clazz.name}")
 }
