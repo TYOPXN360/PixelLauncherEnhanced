@@ -281,29 +281,37 @@ class ThemedIcons(context: Context) : ModPack(context) {
                                 }
 
                                 if (monoBitmap != null) {
-                                    val themedDelegateCompanion = findClass(
-                                        "com.android.launcher3.icons.mono.ThemedIconDelegate\$Companion",
-                                        suppressError = true
-                                    )
-                                    val colorProvider = themedDelegateCompanion?.getStaticFieldSilently("INSTANCE")
-
                                     val monoThemedBitmapClass = findClass(
                                         "com.android.launcher3.icons.mono.MonoThemedBitmap",
                                         suppressError = true
                                     )
                                     val cInterface = findClass("ta.c", suppressError = true)
 
-                                    if (monoThemedBitmapClass != null && cInterface != null && colorProvider != null) {
-                                        val newThemedBitmap = monoThemedBitmapClass
-                                            .getConstructor(android.graphics.Bitmap::class.java, cInterface, Double::class.javaPrimitiveType)
-                                            .newInstance(monoBitmap, colorProvider, null)
-
-                                        de.robv.android.xposed.XposedHelpers.setObjectField(
-                                            param.thisObject, "themedBitmap", newThemedBitmap
+                                    if (monoThemedBitmapClass != null && cInterface != null) {
+                                        // Create a MonoIconThemeController to get its colorProvider
+                                        val monoControllerClass = findClass(
+                                            "com.android.launcher3.icons.mono.MonoIconThemeController",
+                                            suppressError = true
                                         )
-                                        log("[ThemedIcons] newIcon: created MonoThemedBitmap successfully")
+                                        val colorProvider = monoControllerClass?.let { ctrlClass ->
+                                            val instance = ctrlClass.getConstructor().newInstance()
+                                            ctrlClass.getDeclaredField("colorProvider").also { it.isAccessible = true }.get(instance)
+                                        }
+
+                                        if (colorProvider != null) {
+                                            val newThemedBitmap = monoThemedBitmapClass
+                                                .getConstructor(android.graphics.Bitmap::class.java, cInterface, Double::class.javaPrimitiveType)
+                                                .newInstance(monoBitmap, colorProvider, null)
+
+                                            de.robv.android.xposed.XposedHelpers.setObjectField(
+                                                param.thisObject, "themedBitmap", newThemedBitmap
+                                            )
+                                            log("[ThemedIcons] newIcon: created MonoThemedBitmap successfully")
+                                        } else {
+                                            log("[ThemedIcons] newIcon: colorProvider is null")
+                                        }
                                     } else {
-                                        log("[ThemedIcons] newIcon: missing - monoThemedBitmap=${monoThemedBitmapClass != null}, cInterface=${cInterface != null}, colorProvider=${colorProvider != null}")
+                                        log("[ThemedIcons] newIcon: missing - monoThemedBitmap=${monoThemedBitmapClass != null}, cInterface=${cInterface != null}")
                                     }
                                 } else {
                                     log("[ThemedIcons] newIcon: monoBitmap is null, monoDrawable=${monoDrawable.javaClass.simpleName}")
