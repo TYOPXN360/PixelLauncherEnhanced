@@ -308,18 +308,19 @@ class ThemedIcons(context: Context) : ModPack(context) {
                                         }
 
                                         if (colorProvider != null) {
-                                            val constructors = monoThemedBitmapClass.declaredConstructors
-                                            log("[ThemedIcons] newIcon: MonoThemedBitmap constructors: ${constructors.map { "${it.parameterTypes.map { p -> p.simpleName }}" }}")
-                                            val constructor = try {
-                                                monoThemedBitmapClass.getConstructor(
+                                            val newThemedBitmap = try {
+                                                // Try with primitive double
+                                                val ctor = monoThemedBitmapClass.getConstructor(
                                                     android.graphics.Bitmap::class.java, cInterface, Double::class.javaPrimitiveType
                                                 )
+                                                ctor.newInstance(monoBitmap, colorProvider, java.lang.Double(0.0))
                                             } catch (_: Throwable) {
-                                                monoThemedBitmapClass.getConstructor(
+                                                // Try with boxed Double
+                                                val ctor = monoThemedBitmapClass.getConstructor(
                                                     android.graphics.Bitmap::class.java, cInterface, Double::class.java
                                                 )
+                                                ctor.newInstance(monoBitmap, colorProvider, java.lang.Double(0.0))
                                             }
-                                            val newThemedBitmap = constructor.newInstance(monoBitmap, colorProvider, 0.0)
 
                                             de.robv.android.xposed.XposedHelpers.setObjectField(
                                                 param.thisObject, "themedBitmap", newThemedBitmap
