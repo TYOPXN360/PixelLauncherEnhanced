@@ -255,25 +255,20 @@ class ThemedIcons(context: Context) : ModPack(context) {
                         val icon = param.thisObject.getFieldSilently("icon") as? android.graphics.Bitmap
                         if (icon != null) {
                             try {
-                                // Convert hardware bitmap to software bitmap
                                 val softwareIcon = icon.copy(android.graphics.Bitmap.Config.ARGB_8888, false)
-                                // Use our MonochromeIconFactory to create monochrome drawable
                                 val monoDrawable = MonochromeIconFactory(softwareIcon.width, false)
                                     .wrap(mContext, android.graphics.drawable.BitmapDrawable(mContext.resources, softwareIcon))
 
-                                // Get the monochrome bitmap from the drawable
                                 val monoBitmap = (monoDrawable as? android.graphics.drawable.BitmapDrawable)?.bitmap
                                     ?.copy(android.graphics.Bitmap.Config.ALPHA_8, false)
 
                                 if (monoBitmap != null) {
-                                    // Get color provider from ThemedIconDelegate.Companion
                                     val themedDelegateCompanion = findClass(
                                         "com.android.launcher3.icons.mono.ThemedIconDelegate\$Companion",
                                         suppressError = true
                                     )
                                     val colorProvider = themedDelegateCompanion?.getStaticFieldSilently("INSTANCE")
 
-                                    // Create MonoThemedBitmap
                                     val monoThemedBitmapClass = findClass(
                                         "com.android.launcher3.icons.mono.MonoThemedBitmap",
                                         suppressError = true
@@ -288,12 +283,18 @@ class ThemedIcons(context: Context) : ModPack(context) {
                                         de.robv.android.xposed.XposedHelpers.setObjectField(
                                             param.thisObject, "themedBitmap", newThemedBitmap
                                         )
-                                        log("[ThemedIcons] Created MonoThemedBitmap from monochrome icon")
+                                        log("[ThemedIcons] newIcon: created MonoThemedBitmap successfully")
+                                    } else {
+                                        log("[ThemedIcons] newIcon: failed to create MonoThemedBitmap - monoThemedBitmapClass=${monoThemedBitmapClass != null}, cInterface=${cInterface != null}, colorProvider=${colorProvider != null}")
                                     }
+                                } else {
+                                    log("[ThemedIcons] newIcon: monoBitmap is null")
                                 }
                             } catch (e: Throwable) {
-                                log("[ThemedIcons] Failed: ${e.message}")
+                                log("[ThemedIcons] newIcon: failed: ${e.message}")
                             }
+                        } else {
+                            log("[ThemedIcons] newIcon: icon bitmap is null")
                         }
                     }
                 }
