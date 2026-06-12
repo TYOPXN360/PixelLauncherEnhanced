@@ -309,7 +309,7 @@ class ThemedIcons(context: Context) : ModPack(context) {
 
                                         if (colorProvider != null) {
                                             val newThemedBitmap = monoThemedBitmapClass
-                                                .getConstructor(android.graphics.Bitmap::class.java, cInterface, Double::class.javaPrimitiveType)
+                                                .getConstructor(android.graphics.Bitmap::class.java, cInterface, Double::class.javaObjectType)
                                                 .newInstance(monoBitmap, colorProvider, null)
 
                                             de.robv.android.xposed.XposedHelpers.setObjectField(
