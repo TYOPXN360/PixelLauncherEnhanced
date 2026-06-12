@@ -294,8 +294,17 @@ class ThemedIcons(context: Context) : ModPack(context) {
                                             suppressError = true
                                         )
                                         val colorProvider = monoControllerClass?.let { ctrlClass ->
-                                            val instance = ctrlClass.getConstructor().newInstance()
-                                            ctrlClass.getDeclaredField("colorProvider").also { it.isAccessible = true }.get(instance)
+                                            try {
+                                                val instance = ctrlClass.getConstructor().newInstance()
+                                                val field = ctrlClass.getDeclaredField("colorProvider")
+                                                field.isAccessible = true
+                                                val cp = field.get(instance)
+                                                log("[ThemedIcons] newIcon: colorProvider from MonoIconThemeController: ${cp?.javaClass?.simpleName}")
+                                                cp
+                                            } catch (e: Throwable) {
+                                                log("[ThemedIcons] newIcon: failed to get colorProvider: ${e.message}")
+                                                null
+                                            }
                                         }
 
                                         if (colorProvider != null) {
