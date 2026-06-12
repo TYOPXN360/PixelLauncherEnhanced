@@ -159,6 +159,7 @@ class ThemedIcons(context: Context) : ModPack(context) {
                 .suppressError()
                 .runAfter { param ->
                     if (appDrawerThemedIcons && param.result == false) {
+                        log("[ThemedIcons] isIconThemeEnabled: was false, setting to true")
                         param.result = true
                     }
                 }
@@ -181,9 +182,11 @@ class ThemedIcons(context: Context) : ModPack(context) {
                     val iconState = param.result
                     if (iconState != null) {
                         val themeController = iconState.getFieldSilently("themeController")
+                        log("[ThemedIcons] parseIconState: themeController=${themeController != null}")
                         if (themeController == null) {
                             val newController = monoIconThemeControllerClass.getConstructor().newInstance()
                             iconState.setField("themeController", newController)
+                            log("[ThemedIcons] parseIconState: injected MonoIconThemeController")
                         }
                     }
                 }
@@ -207,6 +210,7 @@ class ThemedIcons(context: Context) : ModPack(context) {
                     if ((flags and FLAG_THEMED) == 0) return@runBefore
 
                     val themedBitmap = param.thisObject.getFieldSilently("themedBitmap")
+                    log("[ThemedIcons] newIcon: flags=$flags, themedBitmap=${themedBitmap?.javaClass?.simpleName}")
                     if (themedBitmap == null || themedBitmap.javaClass.simpleName == "NOT_SUPPORTED") {
                         val icon = param.thisObject.getFieldSilently("icon") as? android.graphics.Bitmap
                         if (icon != null) {
