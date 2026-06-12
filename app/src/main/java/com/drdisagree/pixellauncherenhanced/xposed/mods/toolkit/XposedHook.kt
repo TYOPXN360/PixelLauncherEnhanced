@@ -158,11 +158,21 @@ class MethodHookHelper(
                             }
                         }
                 } else {
-                    clazz?.declaredMethods?.toList()?.union(clazz.methods.toList())
-                        ?.find { it.name == methodName }?.let { m ->
+                    if (!parameterTypes.isNullOrEmpty()) {
+                        val resolvedTypes = resolveParamTypes(parameterTypes!!)
+                        val m = try { clazz?.getDeclaredMethod(methodName, *resolvedTypes) } catch (_: Throwable) { null }
+                            ?: try { clazz?.getMethod(methodName, *resolvedTypes) } catch (_: Throwable) { null }
+                        if (m != null) {
                             hookMethodInternal(m, interceptor)
                             foundAnyMethod = true
                         }
+                    } else {
+                        clazz?.declaredMethods?.toList()?.union(clazz.methods.toList())
+                            ?.find { it.name == methodName }?.let { m ->
+                                hookMethodInternal(m, interceptor)
+                                foundAnyMethod = true
+                            }
+                    }
                 }
             }
             if (!foundAnyMethod) {
@@ -273,7 +283,7 @@ private fun resolveParamTypes(parameterTypes: Array<Any?>): Array<Class<*>> {
                     "short" -> Short::class.javaPrimitiveType!!
                     "char" -> Char::class.javaPrimitiveType!!
                     "void" -> Void::class.javaPrimitiveType!!
-                    else -> Class.forName(type)
+                    else -> Class.forName(type, false, XposedHook.classLoader ?: ClassLoader.getSystemClassLoader())
                 }
             }
             else -> throw IllegalArgumentException("Invalid parameter type: $type")

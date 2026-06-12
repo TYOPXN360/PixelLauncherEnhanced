@@ -97,35 +97,15 @@ class LauncherUtils(context: Context) : ModPack(context) {
         private var lastRestartTime = 0L
 
         fun getAttrColor(context: Context, resID: Int): Int {
-            return runCatching {
-                ThemesClass.callStaticMethod(
-                    "getAttrColor",
-                    context,
-                    resID
-                )
-            }.getOrElse {
-                runCatching {
-                    ThemesClass.callStaticMethod(
-                        "getAttrColor",
-                        resID,
-                        context
-                    )
-                }.getOrElse {
-                    runCatching {
-                        GraphicsUtilsClass.callStaticMethod(
-                            "getAttrColor",
-                            context,
-                            resID
-                        )
-                    }.getOrElse {
-                        GraphicsUtilsClass.callStaticMethod(
-                            "getAttrColor",
-                            resID,
-                            context
-                        )
-                    }
-                }
-            } as Int
+            return (GraphicsUtilsClass?.callStaticMethod(
+                "getAttrColor",
+                context,
+                resID
+            ) ?: ThemesClass?.callStaticMethod(
+                "getAttrColor",
+                context,
+                resID
+            )) as? Int ?: 0
         }
 
         fun restartLauncher(context: Context) {

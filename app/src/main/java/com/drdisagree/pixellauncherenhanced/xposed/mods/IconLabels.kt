@@ -76,14 +76,14 @@ class IconLabels(context: Context) : ModPack(context) {
 
         try {
             bubbleTextViewClass
-                .hookMethod("applyLabel")
+                .hookMethod("applyIconAndLabel")
                 .parameters("com.android.launcher3.model.data.ItemInfoWithIcon")
                 .throwError()
                 .runBefore { param -> param.beforeHookedLabel() }
                 .runAfter { param -> param.afterHookedLabel() }
         } catch (_: Throwable) {
             bubbleTextViewClass
-                .hookMethod("applyIconAndLabel")
+                .hookMethod("applyFromItemInfoWithIcon")
                 .parameters("com.android.launcher3.model.data.ItemInfoWithIcon")
                 .runBefore { param -> param.beforeHookedLabel() }
                 .runAfter { param -> param.afterHookedLabel() }

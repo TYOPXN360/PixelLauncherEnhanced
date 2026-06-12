@@ -367,7 +367,7 @@ class ThemedIcons(context: Context) : ModPack(context) {
                 param.thisObject.callMethod("setIcon", iconDrawable)
 
                 try {
-                    param.thisObject.callMethod("applyLabel", info)
+                    param.thisObject.callMethod("applyIconAndLabel", info)
                 } catch (_: Throwable) { // method is nuked by R8 :)
                     val label = info.getFieldSilently("title") as? CharSequence
 
