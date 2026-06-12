@@ -153,13 +153,11 @@ class ThemedIcons(context: Context) : ModPack(context) {
             }
 
         // Hook ThemeManager.isIconThemeEnabled() for new launcher versions
-        // This ensures themed icons work when our setting is enabled
         themeManagerClass?.let { clazz ->
             clazz.hookMethod("isIconThemeEnabled")
                 .suppressError()
                 .runAfter { param ->
                     if (appDrawerThemedIcons && param.result == false) {
-                        log("[ThemedIcons] isIconThemeEnabled: was false, setting to true")
                         param.result = true
                     }
                 }
@@ -169,7 +167,6 @@ class ThemedIcons(context: Context) : ModPack(context) {
             "com.android.launcher3.icons.mono.MonoIconThemeController",
             suppressError = true
         )
-        log("[ThemedIcons] monoIconThemeControllerClass=${monoIconThemeControllerClass != null}")
 
         // Hook ThemeManager.verifyIconState() to inject MonoIconThemeController
         // into iconState.themeController when it's null
@@ -182,7 +179,6 @@ class ThemedIcons(context: Context) : ModPack(context) {
                 }
             }
 
-            log("[ThemedIcons] hooking verifyIconState...")
             themeManagerClass.hookMethod("verifyIconState")
                 .suppressError()
                 .runAfter { param ->
@@ -191,24 +187,21 @@ class ThemedIcons(context: Context) : ModPack(context) {
                     val thisObj = param.thisObject
                     val iconState = thisObj.getFieldSilently("iconState") ?: return@runAfter
                     val themeController = iconState.getFieldSilently("themeController")
-                    log("[ThemedIcons] verifyIconState: themeController=${themeController != null}")
                     if (themeController == null) {
                         de.robv.android.xposed.XposedHelpers.setObjectField(
                             iconState, "themeController", getOrCreateController()
                         )
-                        log("[ThemedIcons] verifyIconState: injected MonoIconThemeController")
                     }
                 }
         }
 
-        // Also hook BaseIconFactory constructor as fallback - use XposedHelpers directly
-        // for final field injection which is more reliable across Android versions
-        val baseIconFactoryClass = findClass(
+        // Hook BaseIconFactory constructor as fallback
+        val baseIconFactoryClass2 = findClass(
             "com.android.launcher3.icons.BaseIconFactory",
             suppressError = true
         )
 
-        if (baseIconFactoryClass != null && monoIconThemeControllerClass != null) {
+        if (baseIconFactoryClass2 != null && monoIconThemeControllerClass != null) {
             var monoControllerCache2: Any? = null
 
             fun getOrCreateController2(): Any {
@@ -217,24 +210,21 @@ class ThemedIcons(context: Context) : ModPack(context) {
                 }
             }
 
-            log("[ThemedIcons] hooking BaseIconFactory constructor...")
-            baseIconFactoryClass.hookConstructor()
+            baseIconFactoryClass2.hookConstructor()
                 .suppressError()
                 .runAfter { param ->
                     if (!appDrawerThemedIcons) return@runAfter
 
                     val themeController = param.thisObject.getFieldSilently("themeController")
-                    log("[ThemedIcons] BaseIconFactory: themeController=${themeController != null}")
                     if (themeController == null) {
                         de.robv.android.xposed.XposedHelpers.setObjectField(
                             param.thisObject, "themeController", getOrCreateController2()
                         )
-                        log("[ThemedIcons] BaseIconFactory: injected MonoIconThemeController")
                     }
                 }
         }
-        // When themedBitmap is NOT_SUPPORTED but our setting is enabled,
-        // create MonoThemedBitmap using our MonochromeIconFactory
+
+        // Hook BitmapInfo.newIcon() to force themed rendering for icons without themedBitmap
         val bitmapInfoClass = findClass(
             "com.android.launcher3.icons.BitmapInfo",
             suppressError = true
@@ -250,7 +240,6 @@ class ThemedIcons(context: Context) : ModPack(context) {
                     if ((flags and FLAG_THEMED) == 0) return@runBefore
 
                     val themedBitmap = param.thisObject.getFieldSilently("themedBitmap")
-                    log("[ThemedIcons] newIcon: flags=$flags, themedBitmap=${themedBitmap?.javaClass?.simpleName}")
                     if (themedBitmap == null || themedBitmap.javaClass.simpleName == "NOT_SUPPORTED") {
                         val icon = param.thisObject.getFieldSilently("icon") as? android.graphics.Bitmap
                         if (icon != null) {
@@ -266,11 +255,8 @@ class ThemedIcons(context: Context) : ModPack(context) {
                                 val monoBitmap = try {
                                     val bitmapField = monoDrawable.javaClass.getDeclaredField("mAlphaBitmap")
                                     bitmapField.isAccessible = true
-                                    val bmp = bitmapField.get(monoDrawable) as? android.graphics.Bitmap
-                                    log("[ThemedIcons] newIcon: mAlphaBitmap=${bmp != null}, config=${bmp?.config}")
-                                    bmp
-                                } catch (e: Throwable) {
-                                    log("[ThemedIcons] newIcon: mAlphaBitmap reflection failed: ${e.message}, fields=${monoDrawable.javaClass.declaredFields.map { it.name }}")
+                                    bitmapField.get(monoDrawable) as? android.graphics.Bitmap
+                                } catch (_: Throwable) {
                                     val w = monoDrawable.intrinsicWidth.coerceAtLeast(1)
                                     val h = monoDrawable.intrinsicHeight.coerceAtLeast(1)
                                     val bmp = android.graphics.Bitmap.createBitmap(w, h, android.graphics.Bitmap.Config.ALPHA_8)
@@ -288,7 +274,6 @@ class ThemedIcons(context: Context) : ModPack(context) {
                                     val cInterface = findClass("ta.c", suppressError = true)
 
                                     if (monoThemedBitmapClass != null && cInterface != null) {
-                                        // Create a MonoIconThemeController to get its colorProvider
                                         val monoControllerClass = findClass(
                                             "com.android.launcher3.icons.mono.MonoIconThemeController",
                                             suppressError = true
@@ -298,48 +283,25 @@ class ThemedIcons(context: Context) : ModPack(context) {
                                                 val instance = ctrlClass.getConstructor().newInstance()
                                                 val field = ctrlClass.getDeclaredField("colorProvider")
                                                 field.isAccessible = true
-                                                val cp = field.get(instance)
-                                                log("[ThemedIcons] newIcon: colorProvider from MonoIconThemeController: ${cp?.javaClass?.simpleName}")
-                                                cp
-                                            } catch (e: Throwable) {
-                                                log("[ThemedIcons] newIcon: failed to get colorProvider: ${e.message}")
+                                                field.get(instance)
+                                            } catch (_: Throwable) {
                                                 null
                                             }
                                         }
 
                                         if (colorProvider != null) {
-                                            val newThemedBitmap = try {
-                                                // Try with primitive double
-                                                val ctor = monoThemedBitmapClass.getConstructor(
-                                                    android.graphics.Bitmap::class.java, cInterface, Double::class.javaPrimitiveType
-                                                )
-                                                ctor.newInstance(monoBitmap, colorProvider, java.lang.Double(0.0))
-                                            } catch (_: Throwable) {
-                                                // Try with boxed Double
-                                                val ctor = monoThemedBitmapClass.getConstructor(
-                                                    android.graphics.Bitmap::class.java, cInterface, Double::class.java
-                                                )
-                                                ctor.newInstance(monoBitmap, colorProvider, java.lang.Double(0.0))
-                                            }
+                                            val newThemedBitmap = monoThemedBitmapClass
+                                                .getConstructor(android.graphics.Bitmap::class.java, cInterface, Double::class.javaObjectType)
+                                                .newInstance(monoBitmap, colorProvider, null)
 
                                             de.robv.android.xposed.XposedHelpers.setObjectField(
                                                 param.thisObject, "themedBitmap", newThemedBitmap
                                             )
-                                            log("[ThemedIcons] newIcon: created MonoThemedBitmap successfully")
-                                        } else {
-                                            log("[ThemedIcons] newIcon: colorProvider is null")
                                         }
-                                    } else {
-                                        log("[ThemedIcons] newIcon: missing - monoThemedBitmap=${monoThemedBitmapClass != null}, cInterface=${cInterface != null}")
                                     }
-                                } else {
-                                    log("[ThemedIcons] newIcon: monoBitmap is null, monoDrawable=${monoDrawable.javaClass.simpleName}")
                                 }
-                            } catch (e: Throwable) {
-                                log("[ThemedIcons] newIcon: failed: ${e.message}")
+                            } catch (_: Throwable) {
                             }
-                        } else {
-                            log("[ThemedIcons] newIcon: icon bitmap is null")
                         }
                     }
                 }
@@ -362,9 +324,6 @@ class ThemedIcons(context: Context) : ModPack(context) {
                     themeManagerClass,
                     themePreferenceClass
                 )
-
-                val appName = info.getFieldSilently("title") ?: "unknown"
-                log("[ThemedIcons] applyIconAndLabel: appName=$appName, shouldUseTheme=$shouldUseTheme, mDisplay=$mDisplay")
 
                 var flags = if (shouldUseTheme) FLAG_THEMED else 0
 
