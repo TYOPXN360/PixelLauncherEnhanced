@@ -255,12 +255,27 @@ class ThemedIcons(context: Context) : ModPack(context) {
                         val icon = param.thisObject.getFieldSilently("icon") as? android.graphics.Bitmap
                         if (icon != null) {
                             try {
-                                val softwareIcon = icon.copy(android.graphics.Bitmap.Config.ARGB_8888, false)
+                                val softwareIcon = if (icon.config == android.graphics.Bitmap.Config.HARDWARE) {
+                                    icon.copy(android.graphics.Bitmap.Config.ARGB_8888, true) ?: icon
+                                } else {
+                                    icon
+                                }
                                 val monoDrawable = MonochromeIconFactory(softwareIcon.width, false)
                                     .wrap(mContext, android.graphics.drawable.BitmapDrawable(mContext.resources, softwareIcon))
 
-                                val monoBitmap = (monoDrawable as? android.graphics.drawable.BitmapDrawable)?.bitmap
-                                    ?.copy(android.graphics.Bitmap.Config.ALPHA_8, false)
+                                val monoBitmap = when (monoDrawable) {
+                                    is android.graphics.drawable.BitmapDrawable -> monoDrawable.bitmap?.copy(android.graphics.Bitmap.Config.ALPHA_8, false)
+                                    else -> {
+                                        // ClippedMonoDrawable - draw to bitmap manually
+                                        val w = monoDrawable.intrinsicWidth.coerceAtLeast(1)
+                                        val h = monoDrawable.intrinsicHeight.coerceAtLeast(1)
+                                        val bmp = android.graphics.Bitmap.createBitmap(w, h, android.graphics.Bitmap.Config.ALPHA_8)
+                                        val canvas = android.graphics.Canvas(bmp)
+                                        monoDrawable.setBounds(0, 0, w, h)
+                                        monoDrawable.draw(canvas)
+                                        bmp
+                                    }
+                                }
 
                                 if (monoBitmap != null) {
                                     val themedDelegateCompanion = findClass(
@@ -285,10 +300,10 @@ class ThemedIcons(context: Context) : ModPack(context) {
                                         )
                                         log("[ThemedIcons] newIcon: created MonoThemedBitmap successfully")
                                     } else {
-                                        log("[ThemedIcons] newIcon: failed to create MonoThemedBitmap - monoThemedBitmapClass=${monoThemedBitmapClass != null}, cInterface=${cInterface != null}, colorProvider=${colorProvider != null}")
+                                        log("[ThemedIcons] newIcon: failed - missing classes")
                                     }
                                 } else {
-                                    log("[ThemedIcons] newIcon: monoBitmap is null")
+                                    log("[ThemedIcons] newIcon: monoBitmap is null, monoDrawable=${monoDrawable.javaClass.simpleName}")
                                 }
                             } catch (e: Throwable) {
                                 log("[ThemedIcons] newIcon: failed: ${e.message}")
