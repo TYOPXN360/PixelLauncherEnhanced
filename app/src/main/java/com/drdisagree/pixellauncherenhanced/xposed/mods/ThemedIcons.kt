@@ -169,6 +169,7 @@ class ThemedIcons(context: Context) : ModPack(context) {
             "com.android.launcher3.icons.mono.MonoIconThemeController",
             suppressError = true
         )
+        log("[ThemedIcons] monoIconThemeControllerClass=${monoIconThemeControllerClass != null}")
 
         // Hook ThemeManager.verifyIconState() to inject MonoIconThemeController
         // into iconState.themeController when it's null
@@ -181,6 +182,7 @@ class ThemedIcons(context: Context) : ModPack(context) {
                 }
             }
 
+            log("[ThemedIcons] hooking verifyIconState...")
             themeManagerClass.hookMethod("verifyIconState")
                 .suppressError()
                 .runAfter { param ->
@@ -215,6 +217,7 @@ class ThemedIcons(context: Context) : ModPack(context) {
                 }
             }
 
+            log("[ThemedIcons] hooking BaseIconFactory constructor...")
             baseIconFactoryClass.hookConstructor()
                 .suppressError()
                 .runAfter { param ->
