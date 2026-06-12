@@ -189,10 +189,12 @@ class ThemedIcons(context: Context) : ModPack(context) {
                     val thisObj = param.thisObject
                     val iconState = thisObj.getFieldSilently("iconState") ?: return@runAfter
                     val themeController = iconState.getFieldSilently("themeController")
+                    log("[ThemedIcons] verifyIconState: themeController=${themeController != null}")
                     if (themeController == null) {
                         de.robv.android.xposed.XposedHelpers.setObjectField(
                             iconState, "themeController", getOrCreateController()
                         )
+                        log("[ThemedIcons] verifyIconState: injected MonoIconThemeController")
                     }
                 }
         }
@@ -219,10 +221,12 @@ class ThemedIcons(context: Context) : ModPack(context) {
                     if (!appDrawerThemedIcons) return@runAfter
 
                     val themeController = param.thisObject.getFieldSilently("themeController")
+                    log("[ThemedIcons] BaseIconFactory: themeController=${themeController != null}")
                     if (themeController == null) {
                         de.robv.android.xposed.XposedHelpers.setObjectField(
                             param.thisObject, "themeController", getOrCreateController2()
                         )
+                        log("[ThemedIcons] BaseIconFactory: injected MonoIconThemeController")
                     }
                 }
         }
