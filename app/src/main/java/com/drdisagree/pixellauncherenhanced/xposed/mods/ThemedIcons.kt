@@ -159,70 +159,34 @@ class ThemedIcons(context: Context) : ModPack(context) {
                 .suppressError()
                 .runAfter { param ->
                     if (appDrawerThemedIcons && param.result == false) {
-                        log("[ThemedIcons] isIconThemeEnabled was false, setting to true")
                         param.result = true
                     }
                 }
         }
 
-        // Hook BaseIconFactory constructor to inject MonoIconThemeController
-        // when themeController is null but our setting is enabled
-        val baseIconFactoryClass = findClass(
-            "com.android.launcher3.icons.BaseIconFactory",
-            suppressError = true
-        )
         val monoIconThemeControllerClass = findClass(
             "com.android.launcher3.icons.mono.MonoIconThemeController",
             suppressError = true
         )
 
-        if (baseIconFactoryClass != null && monoIconThemeControllerClass != null) {
-            baseIconFactoryClass
-                .hookConstructor()
+        // Hook ThemeManager.parseIconState() to inject MonoIconThemeController at the source
+        // This ensures themeController is non-null BEFORE it's passed to BaseIconFactory constructors
+        //解决了图标缓存导致的主题图标逐渐失效问题
+        if (themeManagerClass != null && monoIconThemeControllerClass != null) {
+            themeManagerClass.hookMethod("parseIconState")
                 .suppressError()
                 .runAfter { param ->
                     if (!appDrawerThemedIcons) return@runAfter
 
-                    val themeController = param.thisObject.getFieldSilently("themeController")
-                    val className = param.thisObject.javaClass.simpleName
-                    log("[ThemedIcons] BaseIconFactory constructor: className=$className, themeController=${themeController != null}")
-                    if (themeController == null) {
-                        // Inject MonoIconThemeController when it's null
-                        val newController = monoIconThemeControllerClass.getConstructor().newInstance()
-                        param.thisObject.setField("themeController", newController)
-                        log("[ThemedIcons] Injected MonoIconThemeController into $className")
-                    }
-                }
-
-            // Also hook LauncherIcons.IconPool.obtain() to fix cached instances
-            // with null themeController when retrieving from the pool
-            val launcherIconsClass = findClass(
-                "com.android.launcher3.icons.LauncherIcons",
-                suppressError = true
-            )
-            launcherIconsClass?.let { clazz ->
-                // Hook the obtain method in the inner IconPool class
-                val iconPoolClass = findClass(
-                    "com.android.launcher3.icons.LauncherIcons\$IconPool",
-                    suppressError = true
-                )
-                iconPoolClass?.hookMethod("obtain")
-                    ?.suppressError()
-                    ?.runAfter { param ->
-                        if (!appDrawerThemedIcons) return@runAfter
-
-                        val launcherIcons = param.result
-                        if (launcherIcons != null) {
-                            val themeController = launcherIcons.getFieldSilently("themeController")
-                            log("[ThemedIcons] IconPool.obtain: themeController=${themeController != null}")
-                            if (themeController == null) {
-                                val newController = monoIconThemeControllerClass.getConstructor().newInstance()
-                                launcherIcons.setField("themeController", newController)
-                                log("[ThemedIcons] Injected MonoIconThemeController into cached LauncherIcons")
-                            }
+                    val iconState = param.result
+                    if (iconState != null) {
+                        val themeController = iconState.getFieldSilently("themeController")
+                        if (themeController == null) {
+                            val newController = monoIconThemeControllerClass.getConstructor().newInstance()
+                            iconState.setField("themeController", newController)
                         }
                     }
-            }
+                }
         }
 
         // ROOT FIX: Hook BitmapInfo.newIcon() to force themed rendering
