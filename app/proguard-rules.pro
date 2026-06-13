@@ -23,12 +23,19 @@
 -keep class io.github.libxposed.service.** { *; }
 
 -keep class com.drdisagree.pixellauncherenhanced.xposed.PLEnhancedModule {
-    public <init>(io.github.libxposed.api.XposedModuleInterface$ModuleLoadedParam);
+    public <init>();
 }
 
--keepclassmembers,allowoptimization,allowobfuscation class * extends com.drdisagree.pixellauncherenhanced.xposed.ModPack {
+-keep class * extends com.drdisagree.pixellauncherenhanced.xposed.ModPack {
     public <init>(android.content.Context);
 }
+
+-keep class com.drdisagree.pixellauncherenhanced.xposed.EntryList { *; }
+-keep class com.drdisagree.pixellauncherenhanced.xposed.HookRes { *; }
+-keep class com.drdisagree.pixellauncherenhanced.xposed.utils.BootLoopProtector { *; }
+-keep class com.drdisagree.pixellauncherenhanced.xposed.utils.BroadcastHook { *; }
+
+-keep class com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.** { *; }
 
 -keepnames class com.drdisagree.pixellauncherenhanced.xposed.utils.XPrefs
 -keepclassmembers,allowoptimization,allowobfuscation class com.drdisagree.pixellauncherenhanced.xposed.utils.XPrefs {
