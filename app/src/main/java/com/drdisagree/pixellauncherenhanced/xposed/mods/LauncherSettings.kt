@@ -277,7 +277,7 @@ class LauncherSettings(context: Context) : ModPack(context) {
                 android.util.Log.d("PLEnhanced", "popupView=${popupView.javaClass.simpleName}, context=$context, mItemMap size=${mItemMap.size}")
 
                 val popupViewAsView = popupView as? android.view.View ?: return@runAfter
-                popupViewAsView.postDelayed({
+                popupViewAsView.post {
                     android.util.Log.d("PLEnhanced", "postDelayed: adding custom items")
 
                     fun addPopupItem(label: CharSequence, icon: Drawable, clickListener: View.OnLongClickListener) {
@@ -334,7 +334,12 @@ class LauncherSettings(context: Context) : ModPack(context) {
                             }
                         )
                     }
-                }, 500L)
+
+                    try {
+                        popupView.callMethodSilently("assignMarginsAndBackgrounds", popupViewAsView as? android.view.ViewGroup)
+                    } catch (_: Throwable) {
+                    }
+                }
             }
     }
 
