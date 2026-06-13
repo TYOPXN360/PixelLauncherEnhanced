@@ -69,9 +69,13 @@ class ClearAllButton(context: Context) : ModPack(context) {
         )
         val recentsStateClass = findClass("com.android.quickstep.fallback.RecentsState")
         val overviewActionsViewClass = findClass("com.android.quickstep.views.OverviewActionsView")
-            val dismissAllTasksMethod: Method =
-                recentsViewClass!!.getDeclaredMethod("dismissAllTasks", View::class.java)
-                    ?: recentsViewClass.getMethod("dismissAllTasks", View::class.java)
+            val dismissAllTasksMethod: Method? =
+                try {
+                    recentsViewClass!!.getDeclaredMethod("dismissAllTasks", View::class.java)
+                        .also { it.isAccessible = true }
+                } catch (_: Throwable) {
+                    recentsViewClass?.getMethod("dismissAllTasks", View::class.java)
+                }
 
         recentsViewClass
             .hookConstructor()
@@ -212,7 +216,7 @@ class ClearAllButton(context: Context) : ModPack(context) {
                         null
                     )
                     setOnClickListener { view ->
-                        dismissAllTasksMethod.invoke(recentsViewInstance, view)
+                        dismissAllTasksMethod?.invoke(recentsViewInstance, view)
                     }
                 }
 
