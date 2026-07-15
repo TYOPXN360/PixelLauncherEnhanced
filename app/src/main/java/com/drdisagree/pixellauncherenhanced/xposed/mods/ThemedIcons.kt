@@ -211,6 +211,26 @@ class ThemedIcons(context: Context) : ModPack(context) {
                     val addMask = verifyHighResThemeOverride.get() ?: return@runBefore
                     param.args[1] = addMask
                 }
+
+            bubbleTextViewClass
+                .hookMethod("applyFromWorkspaceItem")
+                .parameters("com.android.launcher3.model.data.WorkspaceItemInfo")
+                .runAfter { param ->
+                    if (!appDrawerThemedIcons) return@runAfter
+
+                    val context = param.thisObject.callMethod("getContext") as Context
+                    val mDisplay = param.thisObject.getField("mDisplay") as Int
+
+                    if (mDisplay.shouldUseTheme(
+                            context,
+                            themesClass,
+                            themeManagerClass,
+                            themePreferenceClass
+                        )
+                    ) {
+                        param.thisObject.callMethod("verifyHighRes")
+                    }
+                }
         }
 
         bubbleTextViewClass
