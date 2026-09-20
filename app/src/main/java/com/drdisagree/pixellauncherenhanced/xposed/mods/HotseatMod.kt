@@ -2,7 +2,6 @@ package com.drdisagree.pixellauncherenhanced.xposed.mods
 
 import android.content.Context
 import android.graphics.Rect
-import android.util.AttributeSet
 import android.view.View
 import com.drdisagree.pixellauncherenhanced.data.common.Constants.DESKTOP_DOCK_SPACING
 import com.drdisagree.pixellauncherenhanced.data.common.Constants.DESKTOP_SEARCH_BAR
@@ -51,11 +50,6 @@ class HotseatMod(context: Context) : ModPack(context) {
 
         hotseatClass
             .hookConstructor()
-            .parameters(
-                Context::class.java,
-                AttributeSet::class.java,
-                Int::class.javaPrimitiveType
-            )
             .runAfter { param ->
                 mQuickSearchBar = param.thisObject.getField("mQsb") as View
                 triggerSearchBarVisibility()
